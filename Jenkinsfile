@@ -23,7 +23,7 @@ pipeline{
         // Prepare 스테이지에서 필요한 작업들 나열
         steps{
           // main 브랜치가 없으면 clone 수행 / 있으면 fetch 수행
-          echo "Lets start Env : ${ENV}"
+          // echo "Lets start Env : ${ENV}"
           echo 'Clonning Repository'
           git url : 'https://github.com/markchck/CICD',
           branch : 'main',
