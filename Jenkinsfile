@@ -91,5 +91,83 @@ pipeline{
           }
         }
       }
+
+      stage('Lint Backed'){
+        agent {
+          //! 젠킨스에 도커 플러그인(Docker, Docker Pipeline)이 깔려 있어야 한다.
+          // sudo yum install docker 도커 설치
+          // sudo usermod -aG docker $USER 도커 사용자 추가 (sudo 안 붙이고도 docker ps 가능)
+          // sudo usermod -aG docker jenkins 젠킨스 도커 사용자 추가
+          docker{
+            image 'node:latest' // ec2:8080 즉 젠킨스 서버에 node가 없으니 docker로 node를 설치
+          }
+        }
+
+        steps{
+          dir('./server'){
+            sh '''
+            npm install
+            npm run lint
+            '''
+          }
+        }
+      }
+
+      // stage('Test Backend'){
+      //   agent {
+      //     docker{
+      //       image 'node:latest'
+      //     }
+      //   }
+
+      //   steps{
+      //     dir('./server'){
+      //       sh '''
+      //       npm install
+      //       npm run test
+      //       '''
+      //     }
+      //   }
+      // }
+
+      stage('Build Backend'){
+        agent any
+        steps {
+          echo 'Building Backend'
+          dir('./server'){
+            sh """
+            docker build -t serverImage --build-arg env=${PROD}
+            """
+          }
+        }
+        post {
+            success{
+              echo 'Successfully Built Backend'
+            }
+            failure{
+              //! 에러 발생 시 중단 시키기 위해 error 키워드 사용(error 안 쓰면 에러 발생해도 진행됨)
+              error 'Failed to Build Backend' 
+            }
+          }
+      }
+
+      stage('Deploy Backend'){
+        agent any
+        steps{
+          echo 'Build Backed'
+          dir('./server'){
+            sh '''
+            docker run -p 80:80 -d serverImage
+            '''
+          }
+        }
+        post {
+          success{
+            mail to : 'markchck@gmail.com',
+            subject : 'Deployed Backend',
+            body : 'Backend Deployed Successfully'
+          }
+        }
+      }
     }
 }
